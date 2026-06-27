@@ -1,0 +1,44 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+model User {
+  id              String             @id @default(uuid())
+  email           String             @unique
+  password        String
+  name            String?
+  streak          Int                @default(0)
+  lastPracticeDate DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  sessions        InterviewSession[]
+}
+
+model InterviewSession {
+  id         String            @id @default(uuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       String            // frontend, backend, fullstack, dsa, hr
+  difficulty String            // entry, mid, senior
+  score      Float?
+  feedback   String?           // overall AI feedback
+  createdAt  DateTime          @default(now())
+  questions  QuestionAttempt[]
+}
+
+model QuestionAttempt {
+  id            String           @id @default(uuid())
+  sessionId     String
+  session       InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionText  String
+  studentAnswer String
+  aiScore       Float?
+  aiFeedback    String?
+  idealAnswer   String?
+  isBookmarked  Boolean          @default(false)
+}
