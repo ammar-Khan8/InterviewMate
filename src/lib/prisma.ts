@@ -1,20 +1,23 @@
-import { PrismaClient } from '../generated/prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaClient } from "../generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const globalForPrisma = global as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
-let prisma: PrismaClient;
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL!,
+});
 
-if (typeof window === 'undefined') {
-  // Prisma 7 SQLite driver adapter takes a configuration object containing the URL
-  if (!globalForPrisma.prisma) {
-    const dbPath = (process.env.DATABASE_URL || 'file:./dev.db').replace('file:', '');
-    const adapter = new PrismaBetterSqlite3({ url: dbPath });
-    globalForPrisma.prisma = new PrismaClient({ adapter });
-  }
-  prisma = globalForPrisma.prisma;
-} else {
-  prisma = null as any;
+const adapter = new PrismaPg(pool);
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    adapter,
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
 }
-
-export { prisma };
