@@ -30,7 +30,34 @@ interface Session {
   questions: Question[];
 }
 
-export default function InterviewFeedback() {
+function normalizeQuestion(rawQuestion: any, index: number): Question {
+  return {
+    id: rawQuestion?.id || `question-${index + 1}`,
+    questionText: rawQuestion?.questionText || rawQuestion?.question || "No question available.",
+    studentAnswer: rawQuestion?.studentAnswer ?? rawQuestion?.answer ?? "",
+    aiScore: typeof rawQuestion?.aiScore === "number" ? rawQuestion.aiScore : null,
+    aiFeedback: rawQuestion?.aiFeedback ?? null,
+    idealAnswer: rawQuestion?.idealAnswer ?? null,
+    isBookmarked: Boolean(rawQuestion?.isBookmarked),
+  };
+}
+
+function normalizeSession(rawSession: any, fallbackId: string): Session {
+  const questions = Array.isArray(rawSession?.questions)
+    ? rawSession.questions.map((q: any, index: number) => normalizeQuestion(q, index))
+    : [];
+
+  return {
+    id: rawSession?.id || fallbackId,
+    type: rawSession?.type || "general",
+    difficulty: rawSession?.difficulty || "medium",
+    score: typeof rawSession?.score === "number" ? rawSession.score : null,
+    feedback: rawSession?.feedback ?? null,
+    questions,
+  };
+}
+
+export default function Page() {
   const router = useRouter();
   const { id } = useParams();
   const { data: session } = useSession();
@@ -49,11 +76,11 @@ export default function InterviewFeedback() {
           return res.json();
         })
         .then((data) => {
-          setSessionData(data);
+          setSessionData(normalizeSession(data, id as string));
           setLoading(false);
           
           // Fire confetti if average score is solid!
-          if (data.score && data.score >= 6) {
+          if (data?.score && data.score >= 6) {
             confetti({
               particleCount: 100,
               spread: 70,
