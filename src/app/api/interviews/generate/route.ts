@@ -20,8 +20,19 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generate 5 questions via Gemini / Local Mock
-    const questions = await generateInterviewQuestions(type, difficulty, resumeText);
+    // Generate 5 questions via Gemini or a local fallback
+    const generatedQuestions = await generateInterviewQuestions(type, difficulty, resumeText);
+    const questions = generatedQuestions
+      .map((text) => text.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+
+    if (questions.length === 0) {
+      return NextResponse.json(
+        { error: "No interview questions were generated" },
+        { status: 500 }
+      );
+    }
 
     // Create session and questions in a transaction
     const dbSession = await prisma.interviewSession.create({
