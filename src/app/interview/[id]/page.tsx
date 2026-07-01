@@ -17,6 +17,18 @@ interface Question {
   studentAnswer: string;
 }
 
+function normalizeQuestion(rawQuestion: any, index: number): Question {
+  const id = rawQuestion?.id || `question-${index + 1}`;
+  const questionText = rawQuestion?.questionText || rawQuestion?.question || "No question available.";
+  const studentAnswer = rawQuestion?.studentAnswer ?? rawQuestion?.answer ?? "";
+
+  return {
+    id,
+    questionText,
+    studentAnswer,
+  };
+}
+
 interface Session {
   id: string;
   type: string;
@@ -57,10 +69,21 @@ export default function InterviewPanel() {
           return res.json();
         })
         .then((data) => {
-          setSessionData(data);
+          const normalizedQuestions = Array.isArray(data?.questions)
+            ? data.questions.map((q: any, index: number) => normalizeQuestion(q, index))
+            : [];
+
+          setSessionData({
+            id: data?.id || id,
+            type: data?.type || "general",
+            difficulty: data?.difficulty || "medium",
+            questions: normalizedQuestions,
+          });
+          setCurrentIdx(0);
+
           // Initialize answers map
           const ansMap: Record<string, string> = {};
-          data.questions.forEach((q: Question) => {
+          normalizedQuestions.forEach((q: Question) => {
             ansMap[q.id] = q.studentAnswer || "";
           });
           setAnswers(ansMap);
@@ -74,11 +97,19 @@ export default function InterviewPanel() {
     }
   }, [id]);
 
+  const getSafeQuestionIndex = () => {
+    if (!sessionData?.questions?.length) return -1;
+    return Math.min(Math.max(currentIdx, 0), sessionData.questions.length - 1);
+  };
+
   // Handle typing answers
   const handleTextChange = (text: string) => {
-    if (sessionData) {
-      const qId = sessionData.questions[currentIdx].id;
-      setAnswers((prev) => ({ ...prev, [qId]: text }));
+    const safeIndex = getSafeQuestionIndex();
+    if (sessionData && safeIndex >= 0) {
+      const qId = sessionData.questions[safeIndex]?.id;
+      if (qId) {
+        setAnswers((prev) => ({ ...prev, [qId]: text }));
+      }
     }
   };
 
@@ -86,8 +117,11 @@ export default function InterviewPanel() {
   const handleSimulateTranscribe = () => {
     stopRecording();
     // Simulate rich speech transcription for demo purposes
-    if (sessionData) {
-      const qId = sessionData.questions[currentIdx].id;
+    const safeIndex = getSafeQuestionIndex();
+    if (sessionData && safeIndex >= 0) {
+      const qId = sessionData.questions[safeIndex]?.id;
+      if (!qId) return;
+
       const currentAns = answers[qId] || "";
       const transcription = 
         currentAns 
@@ -100,17 +134,15 @@ export default function InterviewPanel() {
   };
 
   const nextQuestion = () => {
-    if (sessionData && currentIdx < sessionData.questions.length - 1) {
+    if (sessionData?.questions?.length) {
       clearRecording();
-      setCurrentIdx((prev) => prev + 1);
+      setCurrentIdx((prev) => Math.min(prev + 1, sessionData.questions.length - 1));
     }
   };
 
   const prevQuestion = () => {
-    if (currentIdx > 0) {
-      clearRecording();
-      setCurrentIdx((prev) => prev - 1);
-    }
+    clearRecording();
+    setCurrentIdx((prev) => Math.max(prev - 1, 0));
   };
 
   const handleFinish = async () => {
@@ -183,11 +215,11 @@ export default function InterviewPanel() {
     );
   }
 
-  if (error || !sessionData) {
+  if (error || !sessionData || !sessionData.questions?.length) {
     return (
       <div className="flex flex-col min-h-screen bg-zinc-950 text-zinc-100 font-sans justify-center items-center p-6 text-center">
         <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
-        <h3 className="text-lg font-bold text-white">{error || "Interview Session Missing"}</h3>
+        <h3 className="text-lg font-bold text-white">{error || "No interview questions were generated for this session."}</h3>
         <button
           onClick={() => router.push("/dashboard")}
           className="btn-primary mt-6 rounded-xl px-5 py-2.5 text-xs font-bold text-white cursor-pointer"
@@ -198,9 +230,25 @@ export default function InterviewPanel() {
     );
   }
 
-  const currentQuestion = sessionData.questions[currentIdx];
-  const progressPercent = ((currentIdx + 1) / sessionData.questions.length) * 100;
-  const currentVal = answers[currentQuestion.id] || "";
+  const safeQuestionIndex = getSafeQuestionIndex();
+  const currentQuestion = safeQuestionIndex >= 0 ? sessionData.questions[safeQuestionIndex] : null;
+  if (!currentQuestion) {
+    return (
+      <div className="flex flex-col min-h-screen bg-zinc-950 text-zinc-100 font-sans justify-center items-center p-6 text-center">
+        <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
+        <h3 className="text-lg font-bold text-white">This interview session is missing the requested question.</h3>
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="btn-primary mt-6 rounded-xl px-5 py-2.5 text-xs font-bold text-white cursor-pointer"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  const progressPercent = ((safeQuestionIndex + 1) / sessionData.questions.length) * 100;
+  const currentVal = currentQuestion?.id ? answers[currentQuestion.id] || "" : "";
 
   return (
     <div className="flex flex-col min-h-screen bg-zinc-950 text-zinc-100 font-sans select-none">

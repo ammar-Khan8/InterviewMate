@@ -1,6 +1,6 @@
-# 🤖InterviewMate
- 
-InterviewMate is a full-stack AI-powered mock interview platform built with **Next.js**, **TypeScript**, **Prisma**, and **SQLite**. It helps users practice **Frontend, Backend, Full-stack, DSA, and HR interviews** through AI-generated interview questions, answer evaluation, session tracking, bookmarks, and performance insights.
+# 🤖Nexhire
+
+Nexhire is a full-stack AI-powered mock interview platform built with **Next.js**, **TypeScript**, **Prisma**, and **SQLite**. It helps users practice **Frontend, Backend, Full-stack, DSA, and HR interviews** through AI-generated interview questions, answer evaluation, session tracking, bookmarks, and performance insights.
  
 The goal of the project is to simulate structured mock interview practice while helping users improve consistency through feedback, saved sessions, and weak-area review.
  
@@ -69,7 +69,7 @@ The goal of the project is to simulate structured mock interview practice while 
 ## 📂 Project Structure
  
 ```bash
-InterviewMate/
+Nexhire/
 ├── prisma/
 │   └── schema.prisma
 │
