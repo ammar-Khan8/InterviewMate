@@ -11,7 +11,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { type, difficulty, resumeText } = await req.json();
+    const { type, difficulty, questionCount, resumeText } = await req.json();
 
     if (!type || !difficulty) {
       return NextResponse.json(
@@ -20,12 +20,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generate 5 questions via Gemini or a local fallback
-    const generatedQuestions = await generateInterviewQuestions(type, difficulty, resumeText);
+    const requestedCount = Number(questionCount) || 5;
+    const safeQuestionCount = Math.min(10, Math.max(3, requestedCount));
+
+    // Generate questions via Gemini or a local fallback
+    const generatedQuestions = await generateInterviewQuestions(type, difficulty, resumeText, safeQuestionCount);
     const questions = generatedQuestions
       .map((text) => text.trim())
       .filter(Boolean)
-      .slice(0, 5);
+      .slice(0, safeQuestionCount);
 
     if (questions.length === 0) {
       return NextResponse.json(

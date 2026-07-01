@@ -16,6 +16,7 @@ export default function NewInterview() {
 
   const [type, setType] = useState("frontend");
   const [difficulty, setDifficulty] = useState("entry");
+  const [questionCount, setQuestionCount] = useState(5);
   const [resumeText, setResumeText] = useState("");
   
   const [loading, setLoading] = useState(false);
@@ -32,7 +33,7 @@ export default function NewInterview() {
     "Establishing connection to AI Core...",
     "Analyzing requested role profile...",
     "Reviewing resume references & candidate profile...",
-    "Compiling 5 custom industrial-grade questions...",
+    `Compiling ${questionCount} custom industrial-grade questions...`,
     "Structuring database transaction sessions...",
     "Ready! Opening live panel..."
   ];
@@ -61,7 +62,7 @@ export default function NewInterview() {
       const res = await fetch("/api/interviews/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, difficulty, resumeText }),
+        body: JSON.stringify({ type, difficulty, questionCount, resumeText }),
       });
 
       const data = await res.json();
@@ -197,11 +198,35 @@ export default function NewInterview() {
                   </div>
                 </div>
 
-                {/* 3. Resume / Custom context */}
+                {/* 3. Question Count Selector */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">3. How many questions?</label>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {[3, 5, 7, 10].map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setQuestionCount(count)}
+                        className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                          questionCount === count
+                            ? "border-indigo-500 bg-indigo-600/10 text-white"
+                            : "border-zinc-800 bg-zinc-950/70 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                        }`}
+                      >
+                        <div className="text-sm font-semibold">{count} Questions</div>
+                        <div className="text-[11px] text-zinc-500 mt-1">
+                          {count <= 3 ? "Quick round" : count <= 5 ? "Balanced session" : "Extended practice"}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4. Resume / Custom context */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-4">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                      3. Resume context or Focus keywords (Optional)
+                      4. Resume context or Focus keywords (Optional)
                     </label>
                     <span className="text-[10px] font-semibold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">
                       Advanced AI Injection

@@ -2,36 +2,163 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const apiKey = process.env.GEMINI_API_KEY || "";
 const hasApiKey = apiKey.trim().length > 0;
+const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 // Initialize Google Gen AI if API key is present
 const genAI = hasApiKey ? new GoogleGenerativeAI(apiKey) : null;
 
-function getFallbackQuestions(type: string, difficulty: string): string[] {
-  const role = type?.trim() || "software engineer";
-  const level = difficulty?.toLowerCase() || "medium";
+function shuffleArray<T>(items: T[]): T[] {
+  const cloned = [...items];
 
-  const baseQuestions = [
-    `Walk me through a recent project you built in ${role} and explain the trade-offs you made.`,
-    `How would you debug a production issue that appears only under load in a modern web application?`,
-    `Describe how you would design a scalable API for a growing product with real-world reliability constraints.`,
-    `What would you improve in a codebase that has become hard to maintain over time?`,
-    `How do you decide between performance optimization and code simplicity in a team setting?`,
-  ];
-
-  if (level.includes("hard") || level.includes("advanced")) {
-    return [
-      `You are asked to scale a feature that now handles millions of requests per day. How would you approach the architecture and bottlenecks?`,
-      `A service is failing intermittently in production. Walk me through your debugging and mitigation plan.`,
-      `How would you design a resilient data layer for high availability and low latency?`,
-      `Describe how you would review and refactor a legacy system without breaking business-critical flows.`,
-      `What observability and reliability practices would you add to a growing platform?`,
-    ];
+  for (let index = cloned.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [cloned[index], cloned[swapIndex]] = [cloned[swapIndex], cloned[index]];
   }
 
-  return baseQuestions;
+  return cloned;
 }
 
-function normalizeGeneratedQuestions(rawQuestions: unknown): string[] {
+function getFallbackQuestions(type: string, difficulty: string): string[] {
+  const role = (type?.trim() || "software engineer").toLowerCase();
+  const level = (difficulty?.toLowerCase() || "medium").trim();
+
+  const pools = {
+    frontend: {
+      easy: [
+        "Walk me through a recent UI feature you built and explain how you kept the experience smooth for users.",
+        "How would you debug a React component that re-renders unexpectedly after a small state change?",
+        "What makes a UI feel polished when the underlying logic is simple?",
+        "How would you explain the difference between controlled and uncontrolled inputs in a React form?",
+        "Describe how you would optimize a slow rendering path in a modern frontend app."
+      ],
+      medium: [
+        "A production React app is suddenly slow after a new release. How would you investigate and improve the bottlenecks?",
+        "How would you design a data-fetching pattern that stays resilient across flaky network conditions?",
+        "Describe how you would structure a component system so the app remains maintainable as it grows.",
+        "What trade-offs do you consider when choosing between server rendering and client-side rendering for a modern web app?",
+        "How would you approach performance profiling for a UI that feels sluggish during user interaction?",
+        "Describe how you would structure state in a large frontend application without creating brittle updates."
+      ],
+      hard: [
+        "How would you architect an interactive dashboard that handles large real-time datasets without freezing the browser?",
+        "A team is seeing inconsistent UI performance across devices. How would you investigate and optimize it systematically?",
+        "How would you approach code-splitting, rendering strategy, and caching for a high-traffic frontend platform?",
+        "How would you design a frontend architecture that remains fast and predictable as the app scales to thousands of components?",
+        "Describe how you would debug a subtle memory leak in a long-lived single-page application."
+      ]
+    },
+    backend: {
+      easy: [
+        "How would you explain the difference between REST and GraphQL in a practical setting?",
+        "Describe how you would secure an API endpoint that handles user data.",
+        "How would you validate input on the server to prevent broken or unsafe requests?",
+        "Explain how you would structure error handling for a backend service that talks to multiple downstream systems."
+      ],
+      medium: [
+        "How would you debug a backend service that returns inconsistent results under load?",
+        "Describe a design for a scalable API that can grow with new features and traffic spikes.",
+        "How do you decide when to introduce caching versus optimizing the database query path?",
+        "How would you design a retry strategy for flaky third-party API calls without making the system unstable?",
+        "Describe how you would decide between synchronous and asynchronous processing for a core business workflow."
+      ],
+      hard: [
+        "How would you design a reliable event-driven backend for millions of requests per day?",
+        "A service is failing intermittently in production. Walk me through your debugging and mitigation plan.",
+        "What observability and reliability practices would you add to a growing platform?",
+        "How would you design a backend system that remains consistent across multiple regions and deployment zones?",
+        "Describe how you would handle data consistency for a workflow that spans several services."
+      ]
+    },
+    fullstack: {
+      easy: [
+        "How would you connect a frontend form to a backend service in a secure way?",
+        "What would you look for when debugging a login flow across client and server?",
+        "How do you decide what should live in the client versus the server in a full-stack app?",
+        "Describe how you would keep a shared feature consistent across UI and API layers."
+      ],
+      medium: [
+        "How would you design a production-ready full-stack feature that balances UX, API design, and data consistency?",
+        "Describe how you would handle authentication and authorization for a SaaS product with multiple roles.",
+        "What are the main trade-offs between SSR and client-side rendering for a full-stack app?",
+        "How would you design onboarding and analytics tracking without hurting performance or privacy?",
+        "Describe how you would debug a bug that only appears when a feature is exercised end-to-end."
+      ],
+      hard: [
+        "How would you architect a multi-tenant application that must remain reliable as traffic grows?",
+        "Describe how you would prevent a full-stack feature from becoming a bottleneck during peak usage.",
+        "How would you isolate and debug a production issue that appears only in one environment?",
+        "How would you design observability for a platform that spans client, API, and database boundaries?",
+        "Describe how you would improve resilience for a large-scale full-stack deployment."
+      ]
+    },
+    dsa: {
+      easy: [
+        "Explain how you would approach solving a simple array or string problem in an interview setting.",
+        "How do you decide whether a problem is better solved with a hash map or a set?",
+        "Describe how you would explain the time complexity of a simple loop-based solution.",
+        "How would you approach a binary search problem and verify your assumptions before coding?"
+      ],
+      medium: [
+        "How would you explain your approach to solving a tree or graph problem under time pressure?",
+        "Describe how you would analyze the complexity of a solution before coding it.",
+        "How do you balance readability and performance when solving algorithmic problems?",
+        "How would you compare two solutions that both work but differ in memory usage?",
+        "Describe how you would reason through a dynamic programming problem step by step."
+      ],
+      hard: [
+        "How would you design an efficient solution for a problem that must scale to large input sizes?",
+        "Describe how you would reason through a tricky dynamic programming problem and communicate your steps clearly.",
+        "How would you decide between multiple candidate solutions when all seem correct but differ in performance?",
+        "How would you optimize a recursive solution that hits stack limits or timeout issues?",
+        "Describe how you would test an algorithmic solution against edge cases and worst-case input."
+      ]
+    },
+    hr: {
+      easy: [
+        "Tell me about a time you had to learn something quickly to meet a deadline.",
+        "How do you handle feedback that you disagree with?",
+        "Describe a time you had to adapt quickly when priorities changed unexpectedly.",
+        "How do you stay organized when several tasks need attention at once?"
+      ],
+      medium: [
+        "Describe a time you had to work with a teammate whose working style was very different from yours.",
+        "How do you handle a project that suddenly changes direction near delivery?",
+        "Tell me about a conflict you resolved without damaging the relationship.",
+        "Describe a time you had to balance personal accountability and team collaboration."
+      ],
+      hard: [
+        "Describe a time you had to influence a team without direct authority.",
+        "How would you handle a leadership situation where morale was dropping under pressure?",
+        "Tell me about a difficult stakeholder conversation and how you approached it.",
+        "Describe a time you had to make a hard decision that affected multiple stakeholders."
+      ]
+    }
+  };
+
+  const rolePool =
+    role.includes("front")
+      ? pools.frontend
+      : role.includes("back")
+        ? pools.backend
+        : role.includes("full")
+          ? pools.fullstack
+          : role.includes("dsa") || role.includes("algo")
+            ? pools.dsa
+            : role.includes("hr") || role.includes("behavior")
+              ? pools.hr
+              : pools.frontend;
+
+  const difficultyPool =
+    level.includes("hard") || level.includes("advanced") || level.includes("senior")
+      ? rolePool.hard
+      : level.includes("entry") || level.includes("easy") || level.includes("intern")
+        ? rolePool.easy
+        : rolePool.medium;
+
+  return shuffleArray(difficultyPool).slice(0, 5);
+}
+
+function normalizeGeneratedQuestions(rawQuestions: unknown, count: number): string[] {
   if (!Array.isArray(rawQuestions)) {
     return [];
   }
@@ -40,16 +167,18 @@ function normalizeGeneratedQuestions(rawQuestions: unknown): string[] {
     .filter((q): q is string => typeof q === "string")
     .map((q) => q.trim())
     .filter(Boolean)
-    .slice(0, 5);
+    .slice(0, count);
 }
 
 export async function generateInterviewQuestions(
   type: string,
   difficulty: string,
-  resumeText?: string
+  resumeText?: string,
+  questionCount = 5
 ): Promise<string[]> {
-  const normType = type.toLowerCase();
-  const fallbackQuestions = getFallbackQuestions(type, difficulty);
+  const safeQuestionCount = Math.min(10, Math.max(3, Number(questionCount) || 5));
+  const normType = (type || "software engineer").trim().toLowerCase();
+  const fallbackQuestions = getFallbackQuestions(type, difficulty).slice(0, safeQuestionCount);
 
   if (!hasApiKey || !genAI) {
     return fallbackQuestions;
@@ -58,15 +187,18 @@ export async function generateInterviewQuestions(
   if (hasApiKey && genAI) {
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: geminiModel,
       });
 
       const prompt = `
 You are a Senior Technical Interviewer with experience interviewing candidates at Google, Amazon, Microsoft, Meta, Netflix, Uber, Stripe, Atlassian and OpenAI.
 
+Randomization Seed:
+${Date.now()}-${Math.random().toString(36).slice(2, 10)}
+
 Your responsibility is to conduct a realistic software engineering interview.
 
-Generate EXACTLY 5 interview questions.
+Generate EXACTLY ${safeQuestionCount} interview questions.
 
 Candidate Information
 
@@ -90,6 +222,8 @@ Rules
 3. NEVER ask only definitions.
 
 4. Questions must sound conversational like a real interviewer.
+
+5. Make the set feel fresh and different from previous interviews. Use a new mix of topics, angle, and phrasing every time.
 
 5. Mix the following categories naturally.
 
@@ -235,7 +369,7 @@ Example
 
       try {
         const parsed = JSON.parse(cleaned);
-        const normalizedQuestions = normalizeGeneratedQuestions(parsed);
+        const normalizedQuestions = normalizeGeneratedQuestions(parsed, safeQuestionCount);
 
         if (normalizedQuestions.length > 0) {
           return normalizedQuestions;
@@ -245,7 +379,8 @@ Example
 
         if (matches) {
           const normalizedQuestions = normalizeGeneratedQuestions(
-            matches.map((q) => q.replace(/"/g, ""))
+            matches.map((q) => q.replace(/"/g, "")),
+            safeQuestionCount
           );
 
           if (normalizedQuestions.length > 0) {
@@ -283,7 +418,7 @@ export async function evaluateAnswers(
 ): Promise<QuestionEvaluation[]> {
   if (hasApiKey && genAI) {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const model = genAI.getGenerativeModel({ model: geminiModel });
       const prompt = `
 You are a Senior Software Engineering Interviewer at Google, Microsoft, Amazon, Meta, Netflix and OpenAI.
 
