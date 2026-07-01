@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InterviewMate - AI-Powered Mock Interview Platform",
+  title: "Nexhire - AI-Powered Mock Interview Platform",
   description: "Accelerate your internship and job preparation with personalized, AI-driven mock interviews and detailed skill progress tracking.",
 };
 

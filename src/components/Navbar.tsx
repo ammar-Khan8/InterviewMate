@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
-import { Flame, User, LogOut, Briefcase, Award } from "lucide-react";
+import { Flame, User, LogOut, Briefcase, Award, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function Navbar() {
@@ -29,11 +29,13 @@ export function Navbar() {
     <header className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white font-black text-xl transition-all duration-300 group-hover:scale-105 group-hover:rotate-3 shadow-lg shadow-indigo-600/30">
-            IM
+          <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 via-violet-500 to-sky-500 text-white shadow-xl shadow-indigo-500/20 transition-transform duration-300 group-hover:-translate-y-1 group-hover:scale-[1.05]">
+            <div className="absolute inset-0 rounded-2xl border border-white/15 opacity-80" />
+            <Sparkles className="h-5 w-5 z-10" />
+            <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-white shadow-lg shadow-white/40" />
           </div>
           <span className="text-xl font-bold tracking-tight text-white group-hover:text-indigo-400 transition-colors">
-            Interview<span className="text-indigo-500">Mate</span>
+            Nexhire
           </span>
         </Link>
 

@@ -174,7 +174,7 @@ export default function Home() {
 
         {/* Footer */}
         <footer className="w-full max-w-6xl border-t border-zinc-900 mt-24 pt-8 pb-4 text-center z-10 flex flex-col md:flex-row justify-between items-center text-xs text-zinc-600 gap-4">
-          <p>© {new Date().getFullYear()} InterviewMate. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Nexhire. All rights reserved.</p>
           <div className="flex gap-4">
             <span className="hover:text-zinc-400 cursor-pointer">Terms</span>
             <span className="hover:text-zinc-400 cursor-pointer">Privacy</span>
